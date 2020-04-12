@@ -1,7 +1,7 @@
 import wikipediaapi
 import requests
 import re
-from wikipedia_for_humans.util import match_one, fuzzy_match
+from wikipedia_for_humans.util import match_one, fuzzy_match, split_sentences
 
 
 def _get_page(page_name, lang="en"):
@@ -95,49 +95,67 @@ def short_answer(query, lang="en"):
     return re.sub(r'\([^)]*\)', '', answer.split(".")[0])
 
 
-def search_in_page(query, page_name, lang="en", all_matches=False, thresh=0.2):
+def search_in_page(query, page_name, lang="en", all_matches=False,
+                   thresh=0.15, paragraphs=True):
     sections = get_sections(page_name, lang)
 
     # search text inside sections
     candidates = []
     scores = []
     for sec in sections:
-        base_score = fuzzy_match(sec, query)
+        # total half assed scoring metric #0
+        # if query is a section title boost score
+        base_score = fuzzy_match(sec.lower(), query.lower())
+        for c in split_sentences(sections[sec], paragraphs):
+            scores.append(base_score)
+            candidates.append(c)
 
-        for c in sections[sec].split("\n"):
-            c = c.strip()
-            if c:
-                scores.append(base_score)
-                candidates.append(c)
-
-    # prune and score
+    query = query.strip()
     for idx, c in enumerate(candidates):
-        score = scores[idx] + fuzzy_match(c, query)
-
+        c = c.lower()
+        score = scores[idx]
         for word in c.split():
-            if query.rstrip("s") in word:
-                score += 0.1
+            # total half assed scoring metric #1
+            # each time query appears in sentence/paragraph boost score
+            if query.lower() in word:
+                # magic numbers are bad
+                score += 0.16
+            # total half assed scoring metric #2
+            # each time page name appears in sentence/paragraph boost score
+            if word in page_name.lower():
+                # magic numbers are bad
+                score += 0.05
         scores[idx] = score
+
 
     best_conf = max(scores)
     best = candidates[scores.index(best_conf)]
+    # this is a fake percent, sorry folks
+    scores = [s if s < 0.9 else 0.93 for s in scores]
+    if best_conf > 1:
+        best_conf = 0.97
 
     if not all_matches:
         return best, best_conf
 
-    # fake percent
-    scores = [s if s < 0.9 else 0.91 for s in scores ]
-
     data = []
     for idx, c in enumerate(candidates):
-        if scores[idx] > thresh:
+        if scores[idx] >= thresh:
             data.append((c, scores[idx]))
     return data
 
 
 def ask_about(query, page_name, lang="en"):
     answer, conf = search_in_page(query, page_name, lang, all_matches=False)
-    if conf < 0.5:
+    if conf < 0.3:
+        return None
+    return re.sub(r'\([^)]*\)', '', answer.split("\n")[0])
+
+
+def tldr_about(query, page_name, lang="en"):
+    answer, conf = search_in_page(query, page_name, lang, all_matches=False,
+                                  paragraphs=False)
+    if conf < 0.3:
         return None
     return re.sub(r'\([^)]*\)', '', answer.split("\n")[0])
 

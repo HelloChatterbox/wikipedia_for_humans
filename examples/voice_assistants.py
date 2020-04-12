@@ -10,13 +10,6 @@ member of the genus Canis (canines), which forms part of the wolf-like canids,
 and is the most widely abundant terrestrial carnivore. The dog and the 
 extant (...) """
 
-# tldr
-answer = wikipedia_for_humans.tldr("dog")
-
-"""
-The dog  is a member of the genus Canis , which forms part of the wolf-like canids, and is the most widely abundant terrestrial carnivore
-"""
-
 # search inside a page
 answer = wikipedia_for_humans.ask_about("lifespan", "dog")
 
@@ -31,9 +24,29 @@ for most the median longevity, the age at which half the dogs in a population
 
 
 answer = wikipedia_for_humans.ask_about("wolf", "dog")
+
 """
 The origin of the domestic dog includes the dog's evolutionary divergence 
 from the wolf, its domestication, and its development into dog types and dog 
 breeds. The dog is a member of the genus Canis, which forms part of the
  wolf-like canids, and was the first species and the only large carnivore 
  to have been domesticated.  (...)"""
+
+# tldr
+answer = wikipedia_for_humans.tldr("dog")
+
+"""
+The dog  is a member of the genus Canis , which forms part of the wolf-like canids, and is the most widely abundant terrestrial carnivore
+"""
+
+# tldr search
+answer = wikipedia_for_humans.tldr_about("lifespan", "dog")
+
+"""
+the heavier the dog the shorter its lifespan
+"""
+
+answer = wikipedia_for_humans.tldr_about("wolf", "dog")
+
+"""
+The relationship between the presence of a dog and success in the hunt is often mentioned as a primary reason for the domestication of the wolf, and a 2004 study of hunter groups with and without a dog gives quantitative support to the hypothesis that the benefits of cooperative hunting was an important factor in wolf domestication"""
