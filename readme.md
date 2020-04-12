@@ -73,9 +73,9 @@ import wikipedia_for_humans
 
 
 # searching
-pages = wikipedia_for_humans.search_wikipedia("dogs", 5)
+search_results = wikipedia_for_humans.search_wikipedia("dogs", 5)
 
-for page_name in pages["pages"]:
+for page_name in search_results["pages"]:
     page = wikipedia_for_humans.get_page(page_name)
     print(page["title"], ":", page["summary"][:60])
 
