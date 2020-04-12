@@ -1,29 +1,25 @@
 import wikipedia_for_humans
 
-
 # searching
-pages = wikipedia_for_humans.search_wikipedia("dogs", 5)
+pages = wikipedia_for_humans.search_pages("dogs", 5)
 
-for page_name in pages["pages"]:
+for page_name in pages:
     page = wikipedia_for_humans.get_page(page_name)
     print(page["title"], ":", page["summary"][:60])
-
 
 # search in page content
 search_term = "wolf"
 page_name = "dog"
-answer, conf = wikipedia_for_humans.search_in_page(search_term, page_name)
-print(answer)
+best_sentence, score = wikipedia_for_humans.search_in_page(search_term,
+                                                           page_name)
 
-for answer, conf in wikipedia_for_humans.search_in_page(search_term, page_name,
-                                          all_matches=True):
-    print(conf, answer[:40])
+for sentence, score in wikipedia_for_humans.search_sentences(search_term,
+                                                             page_name):
+    if score > 0.5:
+        print(score, sentence[:40])
 
-# always returns a dict or None
-pages = wikipedia_for_humans.search_wikipedia("jthsgrfd")
-assert pages is None
-sections = wikipedia_for_humans.get_sections("dog")
-assert isinstance(sections, dict)
-page = wikipedia_for_humans.get_page("rdfhgjklhygtf")
-assert page is None
+for paragraph, score in wikipedia_for_humans.search_paragraphs(search_term,
+                                                               page_name):
+    if score > 0.5:
+        print(score, paragraph[:40])
 

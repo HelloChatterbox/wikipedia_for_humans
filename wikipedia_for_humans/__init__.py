@@ -4,6 +4,7 @@ import re
 from wikipedia_for_humans.util import match_one, fuzzy_match, split_sentences
 
 
+# internal handling of wikipediaapi
 def _get_page(page_name, lang="en"):
     wiki_wiki = wikipediaapi.Wikipedia(lang)
     page_py = wiki_wiki.page(page_name)
@@ -37,6 +38,7 @@ def _get_text(page_name, lang="en"):
     return page.text
 
 
+# parsing functions
 def get_sections(page_name, lang="en"):
     if isinstance(page_name, str):
         page = _get_page(page_name, lang)
@@ -81,18 +83,18 @@ def search_wikipedia(query, limit=3):
     return {"pages": results, "urls": urls}
 
 
-def summary(query, lang="en"):
-    results = search_wikipedia(query, limit=1)
-    if results is None:
-        return ""
-    page = _get_page(results["pages"][0], lang)
-    answer = _get_summary(page, lang)
-    return answer
+def search_pages(query, limit=3):
+    result = search_wikipedia(query, limit)
+    if result is None:
+        return None
+    return result["pages"]
 
 
-def short_answer(query, lang="en"):
-    answer = summary(query, lang)
-    return re.sub(r'\([^)]*\)', '', answer.split(".")[0])
+def search_urls(query, limit=3):
+    result = search_wikipedia(query, limit)
+    if result is None:
+        return None
+    return result["urls"]
 
 
 def search_in_page(query, page_name, lang="en", all_matches=False,
@@ -109,7 +111,8 @@ def search_in_page(query, page_name, lang="en", all_matches=False,
         for c in split_sentences(sections[sec], paragraphs):
             scores.append(base_score)
             candidates.append(c)
-
+    if not candidates:
+        return None, 0
     query = query.strip()
     for idx, c in enumerate(candidates):
         c = c.lower()
@@ -126,7 +129,6 @@ def search_in_page(query, page_name, lang="en", all_matches=False,
                 # magic numbers are bad
                 score += 0.05
         scores[idx] = score
-
 
     best_conf = max(scores)
     best = candidates[scores.index(best_conf)]
@@ -145,6 +147,31 @@ def search_in_page(query, page_name, lang="en", all_matches=False,
     return data
 
 
+def search_paragraphs(query, page_name, lang="en", thresh=0.15):
+    return search_in_page(query, page_name, lang, thresh=thresh,
+                          all_matches=True, paragraphs=True)
+
+
+def search_sentences(query, page_name, lang="en", thresh=0.2):
+    return search_in_page(query, page_name, lang, thresh=thresh,
+                          all_matches=True, paragraphs=False)
+
+
+# Human functions
+def summary(query, lang="en"):
+    results = search_wikipedia(query, limit=1)
+    if results is None:
+        return ""
+    page = _get_page(results["pages"][0], lang)
+    answer = _get_summary(page, lang)
+    return answer
+
+
+def short_answer(query, lang="en"):
+    answer = summary(query, lang)
+    return re.sub(r'\([^)]*\)', '', answer.split(".")[0])
+
+
 def ask_about(query, page_name, lang="en"):
     answer, conf = search_in_page(query, page_name, lang, all_matches=False)
     if conf < 0.3:
@@ -160,5 +187,21 @@ def tldr_about(query, page_name, lang="en"):
     return re.sub(r'\([^)]*\)', '', answer.split("\n")[0])
 
 
+def long_answer(query, lang="en"):
+    return summary(query, lang=lang)
+
+
+def short_summary(query, lang="en"):
+    return short_answer(query, lang)
+
+
 def tldr(query, lang="en"):
     return short_answer(query, lang)
+
+
+def best_sentence(query, page_name, lang="en"):
+    return tldr_about(query, page_name, lang=lang)
+
+
+def best_paragraph(query, page_name, lang="en"):
+    return ask_about(query, page_name, lang=lang)
