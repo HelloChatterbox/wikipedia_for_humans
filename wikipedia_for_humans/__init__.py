@@ -144,6 +144,7 @@ def search_in_page(query, page_name, lang="en", all_matches=False,
     for idx, c in enumerate(candidates):
         if scores[idx] >= thresh:
             data.append((c, scores[idx]))
+    # TODO Sorted
     return data
 
 
