@@ -24,29 +24,34 @@ for most the median longevity, the age at which half the dogs in a population
 
 
 answer = wikipedia_for_humans.ask_about("wolf", "dog")
-
 """
-The origin of the domestic dog includes the dog's evolutionary divergence 
-from the wolf, its domestication, and its development into dog types and dog 
-breeds. The dog is a member of the genus Canis, which forms part of the
- wolf-like canids, and was the first species and the only large carnivore 
- to have been domesticated.  (...)"""
+'Although dogs are the most abundant and widely distributed terrestrial '
+ 'carnivores, the potential of feral and free-ranging dogs to compete with '
+ 'other large carnivores is limited by their strong association with humans. '
+ 'For example, a review of the studies in the competitive effects of dogs on '
+ 'sympatric carnivores did not mention any research on competition between '
+ 'dogs and wolves. Although wolves are known to kill dogs, they tend to live '
+ 'in pairs or in small packs in areas where they are highly persecuted, giving '
+ 'them a disadvantage facing large dog groups.Wolves kill dogs wherever they '
+ 'are found together. One study reported that in Wisconsin in 1999 more '
+ 'compensation had been paid for losses due to wolves taking dogs than for '
+ 'wolves taking livestock. In Wisconsin wolves will often kill hunting dogs, '
+ "possibly because the dogs are in the wolf's territory. (...)
+ """
 
 # tldr
 answer = wikipedia_for_humans.tldr("dog")
-
 """
 The dog  is a member of the genus Canis , which forms part of the wolf-like canids, and is the most widely abundant terrestrial carnivore
 """
 
 # tldr search
 answer = wikipedia_for_humans.tldr_about("lifespan", "dog")
-
 """
 the heavier the dog the shorter its lifespan
 """
 
 answer = wikipedia_for_humans.tldr_about("wolf", "dog")
-
 """
-The relationship between the presence of a dog and success in the hunt is often mentioned as a primary reason for the domestication of the wolf, and a 2004 study of hunter groups with and without a dog gives quantitative support to the hypothesis that the benefits of cooperative hunting was an important factor in wolf domestication"""
+The dog and the extant gray wolf are sister taxa, as modern wolves are not closely related to the population of wolves that was first domesticated
+"""
