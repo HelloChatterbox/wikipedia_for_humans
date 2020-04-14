@@ -8,9 +8,6 @@ interspersed with a few short bursts when the speed varies between 104 and
 120 km/h
 """
 
-
-# sometimes the tldr does not really return what you want even if its
-# technically correct
 answer = wikipedia_for_humans.tldr_about("speed", "light")
 print(answer)
 """
