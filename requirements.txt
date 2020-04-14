@@ -1,2 +1,3 @@
 requests
 wikipedia-api
+inflection

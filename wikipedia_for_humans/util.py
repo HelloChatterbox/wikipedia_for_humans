@@ -1,5 +1,12 @@
 from difflib import SequenceMatcher
 import re
+from inflection import singularize as _singularize_en
+
+
+def singularize(word, lang="en"):
+    if lang.startswith("en"):
+        return _singularize_en(word)
+    return word.rstrip("s")
 
 
 def split_sentences(text, new_lines = False):
@@ -70,6 +77,7 @@ def summarize(answer):
 
 
 if __name__ == "__main__":
+    print(singularize("wolves"))
     s = "this is {remove me}     the first sentence "
     print(summarize(s))
     s = "       this is (remove me) second. and the 3rd"

@@ -7,7 +7,7 @@ setup(
     url='https://github.com/OpenJarbas/wikipedia_for_humans',
     license='MIT',
     author='jarbasAI',
-    install_requires=["requests", "wikipedia-api"],
+    install_requires=["requests", "wikipedia-api", "inflection"],
     author_email='jarbasai@mailfence.com',
     description='wikipedia for humans'
 )

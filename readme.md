@@ -27,8 +27,8 @@ extant (...)
 """
 
 # search inside a page - search best paragraph
-answer = wikipedia_for_humans.ask_about("lifespan", "dog")
-
+answer = wikipedia_for_humans.ask_about("speed", "light")
+print(answer)
 """
 In 2013, a study found that mixed breeds live on average 1.2 years longer 
 than pure breeds, and that increasing body-weight was negatively correlated 

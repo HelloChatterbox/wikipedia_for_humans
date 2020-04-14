@@ -1,7 +1,7 @@
 import wikipediaapi
 import requests
 from wikipedia_for_humans.util import match_one, fuzzy_match, \
-    split_sentences, summarize, remove_parentheses
+    split_sentences, summarize, remove_parentheses, singularize
 from wikipedia_for_humans.exceptions import DisambiguationError
 
 
@@ -120,42 +120,80 @@ def search_urls(query, limit=3):
 
 
 def search_in_page(query, page_name, lang="en", all_matches=False,
-                   thresh=0.15, paragraphs=True):
+                   thresh=0.1, paragraphs=True):
     sections = get_sections(page_name, lang)
     if isinstance(page_name, wikipediaapi.WikipediaPage):
         page_name = page_name.title
-    page_name = remove_parentheses(page_name)
+    page_name = singularize(remove_parentheses(page_name), lang).lower().strip()
+    original_query = query
+    query = singularize(remove_parentheses(query), lang).lower().strip()
     # search text inside sections
     candidates = []
     scores = []
     for sec in sections:
         # total half assed scoring metric #0
         # if query is a section title boost score
-        base_score = fuzzy_match(sec.lower(), query.lower())
+        base_score = 0
+        if page_name in sec.lower():
+            base_score = 0.1
+        if original_query.lower() in sec.lower():
+            base_score += 0.2
+        elif query in sec.lower():
+            base_score += 0.15
+        elif query in singularize(sec.lower()):
+            base_score += 0.1
+
         for c in split_sentences(sections[sec], paragraphs):
-            scores.append(base_score)
-            candidates.append(c)
+            if len(c.split(" ")) > 3:
+                scores.append(base_score)
+                candidates.append(c)
+
     if not candidates:
+        if all_matches:
+            return []
         return None, 0
-    query = query.strip()
+
     for idx, c in enumerate(candidates):
-        c = c.lower()
         score = scores[idx]
         for word in c.split():
+
             # total half assed scoring metric #1
             # each time query appears in sentence/paragraph boost score
-            if query.lower() in word:
+            if len(word) < 3:
+                continue
+            word = word.lower().strip()
+            singular_word = singularize(word, lang).lower().strip()
+
+            if query == word:
+                # magic numbers are bad
+                score += 0.4
+            elif query == singular_word:
                 # magic numbers are bad
                 score += 0.3
+            # partial match
+            elif query in word or word in query:
+                score += 0.15
+            elif query in singular_word or singular_word in query:
+                score += 0.1
+
             # total half assed scoring metric #2
             # each time page name appears in sentence/paragraph boost score
-            if word in page_name.lower():
+            if word in page_name:
                 # magic numbers are bad
-                score += 0.05
+                score += 0.01
+
         scores[idx] = score
 
+    # total half assed scoring metric #3
+    # give preference to short sentences
+    if not paragraphs:
+        for idx, c in enumerate(candidates):
+            scores[idx] = scores[idx] / (len(c) / 100 + 0.3)
+    else:
+        for idx, c in enumerate(candidates):
+            scores[idx] = scores[idx] / (len(split_sentences(c)) + 0.1)
+
     best_score = max(scores)
-    best = candidates[scores.index(best_score)]
 
     # this is a fake percent, sorry folks
     if best_score > 1:
@@ -165,11 +203,12 @@ def search_in_page(query, page_name, lang="en", all_matches=False,
         best_score = 1
 
     if not all_matches:
+        best = candidates[scores.index(best_score)]
         return best, best_score
 
     data = []
     for idx, c in enumerate(candidates):
-        if scores[idx] >= thresh:
+        if c.strip() and scores[idx] >= thresh:
             data.append((c, scores[idx]))
     data.sort(key=lambda k: k[1], reverse=True)
     return data
@@ -306,8 +345,6 @@ def ask_about(query, page_name, lang="en"):
         page = _get_page(results["pages"][0], lang, auto_disambiguate=True)
 
     answer, conf = search_in_page(query, page, lang, all_matches=False)
-    if conf < 0.3:
-        return None
     return remove_parentheses(answer)
 
 
@@ -321,8 +358,6 @@ def tldr_about(query, page_name, lang="en"):
         page = _get_page(results["pages"][0], lang, auto_disambiguate=True)
     answer, conf = search_in_page(query, page, lang, all_matches=False,
                                   paragraphs=False)
-    if conf < 0.3:
-        return None
     return summarize(answer)
 
 
