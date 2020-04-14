@@ -146,7 +146,7 @@ def search_in_page(query, page_name, lang="en", all_matches=False,
             # each time query appears in sentence/paragraph boost score
             if query.lower() in word:
                 # magic numbers are bad
-                score += 0.16
+                score += 0.3
             # total half assed scoring metric #2
             # each time page name appears in sentence/paragraph boost score
             if word in page_name.lower():
@@ -154,21 +154,24 @@ def search_in_page(query, page_name, lang="en", all_matches=False,
                 score += 0.05
         scores[idx] = score
 
-    best_conf = max(scores)
-    best = candidates[scores.index(best_conf)]
+    best_score = max(scores)
+    best = candidates[scores.index(best_score)]
+
     # this is a fake percent, sorry folks
-    scores = [s if s < 0.9 else 0.93 for s in scores]
-    if best_conf > 1:
-        best_conf = 0.97
+    if best_score > 1:
+        dif = best_score - 1
+        scores = [s - dif for s in scores]
+        scores = [s if s > 0 else 0.0001 for s in scores]
+        best_score = 1
 
     if not all_matches:
-        return best, best_conf
+        return best, best_score
 
     data = []
     for idx, c in enumerate(candidates):
         if scores[idx] >= thresh:
             data.append((c, scores[idx]))
-    # TODO Sorted
+    data.sort(key=lambda k: k[1], reverse=True)
     return data
 
 
