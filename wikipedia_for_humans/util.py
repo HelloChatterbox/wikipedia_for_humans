@@ -46,3 +46,34 @@ def match_one(query, choices):
         return (choices[best[0]], best[1])
     else:
         return best
+
+
+def remove_parentheses(answer):
+    answer = re.sub(r'\[[^)]*\]', '', answer)
+    answer = re.sub(r'\([^)]*\)', '', answer)
+    answer = re.sub(r'\{[^)]*\}', '', answer)
+    answer = answer.replace("(", "").replace(")", "") \
+        .replace("[", "").replace("]", "").replace("{", "")\
+        .replace("}", "").strip()
+    words = [w for w in answer.split(" ") if w.strip()]
+    answer = " ".join(words)
+    if not answer:
+        return None
+    return answer
+
+
+def summarize(answer):
+    answer = remove_parentheses(answer)
+    if not answer:
+        return None
+    return split_sentences(answer)[0]
+
+
+if __name__ == "__main__":
+    s = "this is {remove me}     the first sentence "
+    print(summarize(s))
+    s = "       this is (remove me) second. and the 3rd"
+    print(summarize(s))
+    s = "this       is [remove me] number 4! number5? number6. number 7 \n " \
+        "number N"
+    print(summarize(s))
