@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='wikipedia_for_humans',
-    version='0.2.0',
+    version='0.2.1',
     packages=['wikipedia_for_humans'],
     url='https://github.com/OpenJarbas/wikipedia_for_humans',
     license='MIT',

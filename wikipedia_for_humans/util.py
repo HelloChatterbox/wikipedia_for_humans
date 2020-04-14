@@ -9,12 +9,52 @@ def singularize(word, lang="en"):
     return word.rstrip("s")
 
 
-def split_sentences(text, new_lines = False):
+def split_sentences(text, new_lines=False):
     if new_lines:
         return text.split("\n")
-    delims = ["\n", ".", "!", "?"]
-    return [s.strip() for s in re.split(r'(!|\?|\.|\n)*', text) if
-            s not in delims and s.strip()]
+
+    # normalize ambiguous cases
+    words = text.split(" ")
+    for idx, w in enumerate(words):
+        # prev_w = words[idx-1] if idx > 0 else ""
+        # next_w = words[idx + 1] if idx < len(words) - 1 else ""
+        if w == ".":
+            # handled ambiguous cases
+            # "hello . He said"
+            # ignored ambiguous cases
+            # "hello . he said"
+            pass  # regex handles these next
+        elif "." in w:
+            # ignored ambiguous cases
+            # "hello. he said"  # could be "Jones Jr. thinks ..."
+            # "hello.he said"  # could be  "www.hello.com"
+            # "hellO.He said"  # could be  "A.E.I.O.U"
+
+            # handled cases
+            # "hello.He said"
+            if len(w.split(".")) == 2:
+                prev_w, next_w = w.split(".")
+                if prev_w and next_w and prev_w[-1].islower() and \
+                        next_w[0].isupper():
+                    words[idx] = w.replace(".", ";")
+    text = " ".join(words)
+    # ignored ambiguous cases
+    # "hello. he said"  # could be "Jones Jr. thinks ..."
+    #
+
+    # handle punctuation delimiters except .
+    delims = ["\n", ";", "!", "?"]
+    _sentences = [s.strip() for s in re.split(r'(!|\?|\;|\n)*', text) if s not in
+                  delims and s.strip()]
+
+    sentences = []
+    # handle . but be careful with numbers / names / websites?
+    for sent in _sentences:
+        sentences += [s.strip() for s in
+                      re.split(r'(?<=[^A-Z].[.]) +(?=[A-Z])', sent) if
+                      s.strip()]
+
+    return sentences
 
 
 def fuzzy_match(x, against):
@@ -56,12 +96,14 @@ def match_one(query, choices):
 
 
 def remove_parentheses(answer):
+    # remove [xx] (xx) {xx}
     answer = re.sub(r'\[[^)]*\]', '', answer)
     answer = re.sub(r'\([^)]*\)', '', answer)
     answer = re.sub(r'\{[^)]*\}', '', answer)
     answer = answer.replace("(", "").replace(")", "") \
-        .replace("[", "").replace("]", "").replace("{", "")\
+        .replace("[", "").replace("]", "").replace("{", "") \
         .replace("}", "").strip()
+    # remove extra spaces
     words = [w for w in answer.split(" ") if w.strip()]
     answer = " ".join(words)
     if not answer:
@@ -70,14 +112,49 @@ def remove_parentheses(answer):
 
 
 def summarize(answer):
-    answer = remove_parentheses(answer)
     if not answer:
         return None
-    return split_sentences(answer)[0]
+    return remove_parentheses(split_sentences(answer)[0])
 
 
 if __name__ == "__main__":
-    print(singularize("wolves"))
+    s = "hello. He said"
+    for s in split_sentences(s):
+        print(s)
+    s = "hello . He said"
+    for s in split_sentences(s):
+        print(s)
+
+    # no splitting
+    s = "hello.com"
+    for s in split_sentences(s):
+        print(s)
+    s = "A.E:I.O.U"
+    for s in split_sentences(s):
+        print(s)
+
+    # ambiguous, but will split
+    s = "hello.He said"
+    for s in split_sentences(s):
+        print(s)
+
+    # ambiguous, no split
+    s = "hello. he said"  # could be "Jones Jr. thinks ..."
+    for s in split_sentences(s):
+        print(s)
+    s = "hello.he said"  # could be  "www.hello.com"
+    for s in split_sentences(s):
+        print(s)
+    s = "hello . he said"  # TODO maybe split this one?
+    for s in split_sentences(s):
+        print(s)
+
+    # test all
+    s = "Mr. Smith bought cheapsite.com for 1.5 million dollars, i.e. he paid a lot for it. Did he mind? Adam Jones Jr. thinks he didn't. In any case, this isn't true... Well, with a probability of .9 it isn't.I know right\nOK"
+    print(summarize(s))
+    for s in split_sentences(s):
+        print(s)
+
     s = "this is {remove me}     the first sentence "
     print(summarize(s))
     s = "       this is (remove me) second. and the 3rd"

@@ -188,7 +188,7 @@ def search_in_page(query, page_name, lang="en", all_matches=False,
     # give preference to short sentences
     if not paragraphs:
         for idx, c in enumerate(candidates):
-            scores[idx] = scores[idx] / (len(c) / 100 + 0.3)
+            scores[idx] = scores[idx] / (len(c) / 200 + 0.3)
     else:
         for idx, c in enumerate(candidates):
             scores[idx] = scores[idx] / (len(split_sentences(c)) + 0.1)
@@ -226,15 +226,21 @@ def search_sentences(query, page_name, lang="en", thresh=0.2):
 
 def disambiguate(page_name, context="", all_matches=False, lang="en"):
     try:
-        page = _get_page(page_name, lang, strict=True)
-        return page.title
+        page = get_page(page_name, lang, strict=True)
+        if not page:
+            raise ValueError
+        if all_matches:
+            return [(page["title"], 1)]
+        return page["title"], 1
     except DisambiguationError:
         page = get_page(page_name, lang)
     except:
         results = search_wikipedia(page_name, limit=1)
         if results is None:
-            return None
-        page = _get_page(results["pages"][0], lang)
+            if all_matches:
+                return []
+            return None, 0
+        return disambiguate(results["pages"][0])
     page_name = page["title"].strip()
     top_ambiguous = page["summary"]
     top_ambiguous = top_ambiguous.replace(
