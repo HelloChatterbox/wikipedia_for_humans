@@ -48,6 +48,21 @@ def _get_text(page_name, lang="en"):
     return page.text
 
 
+def _get_images(page_name, lang="en"):
+    if isinstance(page_name, str):
+        page = _get_page(page_name, lang)
+    else:
+        # TODO confirm page is page object
+        page = page_name
+    url = "http://en.wikipedia.org/w/api.php"
+    params = {"action": "query",
+              "titles": page.title,
+              "prop": "pageimages",
+              "piprop": "original",
+              "format": "json"}
+    return requests.get(url, params=params).json()["query"]["pages"]
+
+
 # parsing functions
 def get_sections(page_name, lang="en"):
     if isinstance(page_name, str):
@@ -385,3 +400,41 @@ def best_sentence(query, page_name, lang="en"):
 
 def best_paragraph(query, page_name, lang="en"):
     return ask_about(query, page_name, lang=lang)
+
+
+def page_data(query, lang="en"):
+    if isinstance(query, wikipediaapi.WikipediaPage):
+        page = query
+    else:
+        results = search_wikipedia(query, limit=1)
+        if results is None:
+            return ""
+        page = _get_page(results["pages"][0], lang, auto_disambiguate=True)
+    sections_to_skip = ['External links', 'Further reading',
+                        'Notes and references', 'See also']
+    data = {
+        "categories": [k.split("Category:")[-1] for k in page._categories],
+        "title": page.title,
+        "page_id": page.pageid,
+        "lang": page.language,
+        "summary": page.summary,
+        "url": page.fullurl,
+        "images": images(page, lang),
+        "sections": [{
+            "title": s.title,
+            "text": s.text
+        } for s in page.sections if s.text and s.title not in sections_to_skip]
+    }
+
+    return data
+
+
+def images(query, lang="en"):
+    if isinstance(query, wikipediaapi.WikipediaPage):
+        page = query
+    else:
+        results = search_wikipedia(query, limit=1)
+        if results is None:
+            return ""
+        page = _get_page(results["pages"][0], lang, auto_disambiguate=True)
+    return [p["original"]["source"] for k, p in _get_images(page, lang).items()]
