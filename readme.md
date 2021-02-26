@@ -1,6 +1,6 @@
 # Wikipedia for humans
 
-Parsing wikipedia is a mess, not anymore
+Parsing of Wikipedia made easy.
 
 ## Install
 
