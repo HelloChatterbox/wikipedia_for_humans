@@ -63,6 +63,13 @@ def _get_images(page_name, lang="en"):
     return requests.get(url, params=params).json()["query"]["pages"]
 
 
+def _get_wikiroulette(lang="en"):
+    url = f"https://{lang}.wikipedia.org/wiki/Special:Random"
+    article_url = requests.get(url).url
+    article = article_url.replace(f"https://{lang}.wikipedia.org/wiki/", "")
+    return _get_page(article, lang)
+
+
 # parsing functions
 def get_sections(page_name, lang="en"):
     if isinstance(page_name, str):
@@ -412,21 +419,23 @@ def page_data(query, lang="en"):
         page = _get_page(results["pages"][0], lang, auto_disambiguate=True)
     sections_to_skip = ['External links', 'Further reading',
                         'Notes and references', 'See also']
-    data = {
-        "categories": [k.split("Category:")[-1] for k in page._categories],
-        "title": page.title,
-        "page_id": page.pageid,
-        "lang": page.language,
-        "summary": page.summary,
-        "url": page.fullurl,
-        "images": images(page, lang),
-        "sections": [{
-            "title": s.title,
-            "text": s.text
-        } for s in page.sections if s.text and s.title not in sections_to_skip]
-    }
-
-    return data
+    try:
+        return {
+            "categories": [k.split("Category:")[-1] for k in page._categories],
+            "title": page.title,
+            "page_id": page.pageid,
+            "lang": page.language,
+            "summary": page.summary,
+            "url": page.fullurl,
+            "images": images(page, lang),
+            "sections": [{
+                "title": s.title,
+                "text": s.text
+            } for s in page.sections if s.text and s.title not in sections_to_skip]
+        }
+    except KeyError:
+        # some pages fail to parse
+        return {}
 
 
 def images(query, lang="en"):
@@ -437,4 +446,13 @@ def images(query, lang="en"):
         if results is None:
             return ""
         page = _get_page(results["pages"][0], lang, auto_disambiguate=True)
-    return [p["original"]["source"] for k, p in _get_images(page, lang).items()]
+    return [p["original"]["source"] for k, p in _get_images(page, lang).items()
+            if "original" in p]
+
+
+def wikiroulette(lang="en"):
+    data = {}
+    while not data.get("url"):  # upstream may fail to parse and return title only
+        data = page_data(_get_wikiroulette(lang), lang)
+    return data
+
