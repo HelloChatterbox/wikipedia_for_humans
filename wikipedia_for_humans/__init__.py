@@ -3,6 +3,7 @@ import requests
 from wikipedia_for_humans.util import match_one, fuzzy_match, \
     split_sentences, summarize, remove_parentheses, singularize
 from wikipedia_for_humans.exceptions import DisambiguationError
+from quebra_frases import word_tokenize, sentence_tokenize
 
 
 # internal handling of wikipediaapi
@@ -149,91 +150,81 @@ def search_in_page(query, page_name, lang="en", all_matches=False,
     page_name = singularize(remove_parentheses(page_name), lang).lower().strip()
     original_query = query
     query = singularize(remove_parentheses(query), lang).lower().strip()
+
     # search text inside sections
     candidates = []
-    scores = []
     for sec in sections:
         # total half assed scoring metric #0
         # if query is a section title boost score
         base_score = 0
         if page_name in sec.lower():
-            base_score = 0.1
+            base_score += 10
         if original_query.lower() in sec.lower():
-            base_score += 0.2
-        elif query in sec.lower():
-            base_score += 0.15
-        elif query in singularize(sec.lower()):
-            base_score += 0.1
+            base_score += 20
+        if query in sec.lower():
+            base_score += 15
+        if query in singularize(sec.lower()):
+            base_score += 10
 
         for c in split_sentences(sections[sec], paragraphs):
             if len(c.split(" ")) > 3:
-                scores.append(base_score)
-                candidates.append(c)
+                candidates.append((c, base_score))
 
     if not candidates:
-        if all_matches:
-            return []
-        return None, 0
+        return [] if all_matches else None
 
-    for idx, c in enumerate(candidates):
-        score = scores[idx]
-        for word in c.split():
-
+    for idx, (c, score) in enumerate(candidates):
+        tokens = [t.lower() for t in word_tokenize(c)]
+        for word in tokens:
             # total half assed scoring metric #1
             # each time query appears in sentence/paragraph boost score
             if len(word) < 3:
                 continue
-            word = word.lower().strip()
-            singular_word = singularize(word, lang).lower().strip()
+
+            singular_word = singularize(word, lang)
 
             if query == word:
                 # magic numbers are bad
-                score += 0.4
-            elif query == singular_word:
+                score += 40
+            if query == singular_word:
                 # magic numbers are bad
-                score += 0.3
+                score += 30
             # partial match
-            elif query in word or word in query:
-                score += 0.15
-            elif query in singular_word or singular_word in query:
-                score += 0.1
+            if query in word or word in query:
+                # magic numbers are bad
+                score += 15
+            if query in singular_word or singular_word in query:
+                # magic numbers are bad
+                score += 10
 
             # total half assed scoring metric #2
             # each time page name appears in sentence/paragraph boost score
             if word in page_name:
                 # magic numbers are bad
-                score += 0.01
+                score += 5
 
-        scores[idx] = score
+        candidates[idx] = (c, score)
 
     # total half assed scoring metric #3
     # give preference to short sentences
     if not paragraphs:
-        for idx, c in enumerate(candidates):
-            scores[idx] = scores[idx] / (len(c) / 200 + 0.3)
+        for idx, (c, score) in enumerate(candidates):
+            score = score / len(c)
+            candidates[idx] = (c, score)
     else:
-        for idx, c in enumerate(candidates):
-            scores[idx] = scores[idx] / (len(split_sentences(c)) + 0.1)
+        for idx, (c, score) in enumerate(candidates):
+            score = score / len(split_sentences(c))
+            candidates[idx] = (c, score)
 
-    best_score = max(scores)
-
-    # this is a fake percent, sorry folks
-    if best_score > 1:
-        dif = best_score - 1
-        scores = [s - dif for s in scores]
-        scores = [s if s > 0 else 0.0001 for s in scores]
-        best_score = 1
-
-    if not all_matches:
-        best = candidates[scores.index(best_score)]
-        return best, best_score
-
-    data = []
-    for idx, c in enumerate(candidates):
-        if c.strip() and scores[idx] >= thresh:
-            data.append((c, scores[idx]))
-    data.sort(key=lambda k: k[1], reverse=True)
-    return data
+    # normalize scores
+    best_score = max(s for _, s in candidates) + 0.1
+    # score of 1 always looks suspicious, so yeah, + 0.1 is cheating
+    candidates = [(c, s/best_score) for c, s in candidates
+                  if s/best_score >= thresh]
+    candidates.sort(key=lambda k: k[1], reverse=True)
+    if all_matches:
+        return candidates
+    return candidates[0]
 
 
 def search_paragraphs(query, page_name, lang="en", thresh=0.15):
